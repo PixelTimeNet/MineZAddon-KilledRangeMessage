@@ -29,18 +29,30 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public class MainListener implements Listener {
 
     private final Main main;
+    private final Set<String> forceOne;
 
     public MainListener(Main main) {
         this.main = main;
+        this.forceOne = Collections.synchronizedSet(new HashSet<String>());
+    }
+
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent event) {
+        forceOne.remove(event.getPlayer().getName());
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        forceOne.remove(event.getPlayer().getName());
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -49,6 +61,11 @@ public class MainListener implements Listener {
         Player killer = player.getKiller();
         if(killer == null)
             return;
+        if(forceOne.contains(player.getName())) {
+            event.setDeathMessage(null); // clean
+            return;
+        }
+        forceOne.add(player.getName());
         Collection<? extends Player> players;
         if(main.getConfiguration().isUseRadius())
             players = getRangePlayers(killer.getLocation(), main.getConfiguration().getRadius());
